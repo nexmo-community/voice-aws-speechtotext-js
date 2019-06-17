@@ -67,7 +67,7 @@ app.ws('/socket', (ws, req) => {
   // 'x-amz-content-sha256': 'STREAMING-AWS4-HMAC-SHA256-EVENTS',
   // 'content-type': 'application/vnd.amazon.eventstream',
 
-  let urlObj = aws4.sign(urlOpts, {accessKeyId: 'AKIAXBYBNOCW4SXUE77G', secretAccessKey: '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'});
+  let urlObj = aws4.sign(urlOpts, {accessKeyId: 'xxx', secretAccessKey: 'xxx'});
 
   const opts = {
     ...urlOpts,
