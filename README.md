@@ -1,12 +1,26 @@
-# Nexmo + Google Cloud Speech Transcription Demo
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://nexmo.dev/google-nexmo-speechtotext-heroku)
+# Nexmo + AWS Transcrive Streaming API WebSocket Demo
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://nexmo.dev/aws-nexmo-transcribe-heroku)
 
-You can use this code as a base for doing real time transcription of a phone call using Google Speech to Text API.
+You can use this code as a base for doing real time transcription of a phone call using [AWS Transcribe Streaming API](https://aws.amazon.com/transcribe/). You can read more about this [here](https://aws.amazon.com/blogs/aws/amazon-transcribe-streaming-now-supports-websockets/)
 
-An audio stream is sent via websocket connection to your server and then relayed to the Google streaming interface. Speech recognition is performed and the text returned to the console.
+An audio stream is sent via WebSockets connection to your server and then relayed to the AWS Transcribe Streaming API service. Speech transcription is performed and the text returned to the console.
 
-## Google Speech to Text API
-You will need to set up a [Google Cloud project and service account](https://cloud.google.com/speech-to-text/docs/quickstart-client-libraries). Once these steps are completed, you will have a downloaded JSON file to set up the rest of the project. You will need this file prior to using the `Deploy to Heroku` button. If you plan on running this locally, make sure this file is saved in the project folder.
+## AWS Transcribe Streaming API WebSocket Setup
+You will need to authorize an [IAM user](https://console.aws.amazon.com/) by attaching the following policy to your user:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "transcribestreaming",
+            "Effect": "Allow",
+            "Action": "transcribe:StartStreamTranscriptionWebSocket",
+            "Resource": "*"
+        }
+    ]
+}
+```
 
 ## Running the App
 
@@ -16,9 +30,11 @@ In order to run this on Heroku, you will need to gather the following informatio
 
 1. `API_KEY` - This is the API key from your Nexmo Account.
 1. `API_SECRET` - This is the API secret from your Nexmo Account.
-1. `GOOGLE_CLIENT_EMAIL` - You can find this in the `google_creds.json` file as `client_email`
-1. `GOOGLE_PRIVATE_KEY` - You can find this in the `google_creds.json` file as `private_key`.
-  1. Be sure to select everything as `-----BEGIN PRIVATE KEY-----\nXXXXXXXXX\n-----END PRIVATE KEY-----\n`
+1. `LANG_CODE` - The language code. One of en-US, en-GB, fr-FR, fr-CA, es-US.
+1. `SAMPLE_RATE` - The sample rate of the audio, in Hz. Max of 16000 for en-US and es-US, and 8000 for the other languages
+1. `AWS_REGION` - Your AWS region.
+1. `AWS_ACCESS_KEY_ID` - The AWS access key ID from the IAM user.
+1. `AWS_SECRET_ACCESS_KEY` - The AWS secret access key from the IAM user.
 
 This will create a new Nexmo application and phone number to begin testing with. View the logs to see the transcription response from the service. You can do this in the Heroku dashboard, or with the Heroku CLI using `heroku logs -t`.
 
@@ -30,7 +46,7 @@ You will need to create a new Nexmo application in order to work with this app:
 Install the CLI by following [these instructions](https://github.com/Nexmo/nexmo-cli#installation). Then create a new Nexmo application that also sets up your `answer_url` and `event_url` for the app running locally on your machine.
 
 ```
-nexmo app:create google-speech-to-text http://<your_hostname>/ncco http://<your_hostname>/event
+nexmo app:create aws-transcribe https://<your_hostname>/ncco https://<your_hostname>/event
 ```
 
 This will return an application ID. Make a note of it.
@@ -65,17 +81,18 @@ Then copy the example.env file to a new file called .env:
 cp .env.example > .env
 ```
 
-Edit the .env file to add in your application ID and the location of the credentials file from Google.
+Edit the .env file to add in your application ID and the credentials from the authorized IAM user..
 
 ```yaml
-GOOGLE_APPLICATION_CREDENTIALS=./google_creds.json
-APP_ID="12345678-aaaa-bbbb-4321-1234567890ab"
-LANG_CODE="en-US"
+APP_ID=
+LANG_CODE= (One of en-US, en-GB, fr-FR, fr-CA, es-US)
+SAMPLE_RATE= (Max of 16000 for en-US and es-US, and 8000 for the other languages)
+AWS_REGION=
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
 ```
 
 Tools like [ngrok](https://ngrok.com/) are great for exposing ports on your local machine to the internet. If you haven't done this before, [check out this guide](https://www.nexmo.com/blog/2017/07/04/local-development-nexmo-ngrok-tunnel-dr/).
-
-If you aren't going to be working in the en-US language then you can change the language to any of the other supported languages listed in the [Google Speech to Text API documentation](https://cloud.google.com/speech-to-text/docs/languages).
 
 ### Using Docker
 To run the app using Docker run the following command in your terminal:
@@ -84,4 +101,4 @@ To run the app using Docker run the following command in your terminal:
 docker-compose up
 ```
 
-This will create a new image with all the dependencies and run it at http://localhost:3000.
+This will create a new image with all the dependencies and run it at http://localhost:8000.

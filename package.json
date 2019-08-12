@@ -1,31 +1,29 @@
 {
-  "name": "voice-google-speechtotext",
+  "name": "voice-aws-speechtotext",
   "version": "1.0.0",
-  "description": "Google Cloud Speech with Nexmo Demo",
+  "description": "AWS Transcribe with Nexmo",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nexmo-community/voice-google-speechtotext.git"
+    "url": "git+https://github.com/nexmo-community/voice-aws-speechtotext.git"
   },
-  "author": "",
+  "author": "Kelly J Andrews (@kellyjandrews)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nexmo-community/voice-google-speechtotext/issues"
+    "url": "https://github.com/nexmo-community/voice-aws-speechtotext/issues"
   },
-  "homepage": "https://github.com/nexmo-community/voice-google-speechtotext#readme",
+  "homepage": "https://github.com/nexmo-community/voice-aws-speechtotext#readme",
   "dependencies": {
-    "@google-cloud/speech": "^2.3.0",
-    "aws-sdk": "^2.476.0",
-    "aws4": "^1.8.0",
+    "@aws-sdk/eventstream-marshaller": "0.1.0-preview.2",
+    "@aws-sdk/util-utf8-node": "0.1.0-preview.1",
     "body-parser": "^1.18.3",
     "dotenv": "^4.0.0",
     "express": "^4.16.4",
     "express-ws": "^4.0.0",
-    "http2-client": "^1.3.2",
     "nexmo": "^2.4.0",
-    "request": "^2.88.0"
+    "query-string": "^6.8.2"
   }
 }

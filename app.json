@@ -1,8 +1,8 @@
 {
-  "name": "Nexmo + Google Cloud Speech",
-  "description": "Demo applicaiton of using Google Cloud Speech API with Nexmo Websockets to perform realtime transcription in multiple languages.",
-  "repository": "https://github.com/nexmo-community/voice-google-speechtotext",
-  "keywords": ["node", "nexmo", "google cloud", "gcp", "text to speech"],
+  "name": "Nexmo + AWS Cloud Speech",
+  "description": "Demo applicaiton of using AWS Transcribe with Nexmo Websockets to perform realtime transcription in multiple languages.",
+  "repository": "https://github.com/nexmo-community/voice-aws-speechtotext",
+  "keywords": ["node", "nexmo", "aws", "transcribe", "text to speech"],
   "env": {
     "NAME": {
       "description": "The Heroku app name."
@@ -21,19 +21,29 @@
       "value": "",
       "required" : true
     },
-    "CC": {
-      "description": "The ISO 3361 Country Code where you want the number to be purchased eg, US, GB, ES etc.",
-      "value": "US",
+    "LANG_CODE": {
+      "description": "The language code. One of en-US, en-GB, fr-FR, fr-CA, es-US",
+      "value": "1600",
       "required" : true
     },
-    "GOOGLE_CLIENT_EMAIL": {
-      "description": "The client_email property from your google_creds.json file.",
-      "value": "service_account_name@project.iam.gserviceaccount.com",
+    "SAMPLE_RATE": {
+      "description": "The sample rate of the audio, in Hz. Max of 16000 for en-US and es-US, and 8000 for the other languages",
+      "value": "1600",
       "required" : true
     },
-    "GOOGLE_PRIVATE_KEY": {
-      "description": "The private_key property from your google_creds.json file. Make sure to copy and paste everything here.",
-      "value": "-----BEGIN PRIVATE KEY-----",
+    "AWS_REGION": {
+      "description": "AWS region",
+      "value": "us-east-1",
+      "required" : true
+    },
+    "AWS_ACCESS_KEY_ID": {
+      "description": "AWS Access Key for IAM User",
+      "value": "AABBCCDDEEFFGGHH1234",
+      "required" : true
+    },
+    "AWS_SECRET_ACCESS_KEY": {
+      "description": "The AWS secret acces key for IAM User",
+      "value": "aaabbbbcccc12345+aaabbbbcccc12345",
       "required" : true
     }
   },

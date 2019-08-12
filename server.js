@@ -5,11 +5,14 @@ const express = require('express');
 const bodyParser = require('body-parser')
 const app = express();
 const expressWs = require('express-ws')(app);
-const http2 = require('http2');
-const aws4  = require('aws4');
-
+const WebSocket = require('ws');
+const marshaller = require("@aws-sdk/eventstream-marshaller"); // for converting binary event stream messages to and from JSON
+const util_utf8_node = require("@aws-sdk/util-utf8-node"); // utilities for encoding and decoding UTF8
+const v4 = require('./aws-signature-v4');
+const crypto = require('crypto'); // to sign our pre-signed URL
 const Nexmo = require('nexmo');
-const { Readable } = require('stream');
+
+const eventStreamMarshaller = new marshaller.EventStreamMarshaller(util_utf8_node.toUtf8, util_utf8_node.fromUtf8);
 
 const nexmo = new Nexmo({
   apiKey: 'dummy',
@@ -41,105 +44,98 @@ app.post('/event', (req, res) => {
   res.status(204).end();
 });
 
-console.log(new Date);
 // Nexmo Websocket Handler
 app.ws('/socket', (ws, req) => {
 
-  console.log('socket connected');
+  console.log('Socket Connected');
 
-  const urlOpts = {
-    service: 'transcribe',
-    region: 'us-east-1',
-    host: 'transcribestreaming.us-east-1.amazonaws.com:443',
-    path: '/stream-transcription',
-    headers:{
-     'content-type': 'application/vnd.amazon.eventstream',
-     'x-amz-target': 'com.amazonaws.transcribe.Transcribe.StartStreamTranscription',
-     'x-amz-content-sha256': 'STREAMING-AWS4-HMAC-SHA256-EVENTS'
+  let url = v4.createPresignedURL(
+    'GET',
+    `transcribestreaming.${process.env.AWS_REGION}.amazonaws.com:8443`,
+    '/stream-transcription-websocket',
+    'transcribe',
+    crypto.createHash('sha256').update('', 'utf8').digest('hex'), {
+        'key': process.env.AWS_ACCESS_KEY_ID,
+        'secret': process.env.AWS_SECRET_ACCESS_KEY,
+        'protocol': 'wss',
+        'expires': 15,
+        'region': process.env.AWS_REGION,
+        'query': `language-code=${process.env.LANG_CODE}&media-encoding=pcm&sample-rate=${process.env.SAMPLE_RATE}`
     }
-  }
+  );
 
-  // ':method': 'POST',
-  // ':path': '/stream-transcription',
-  // 'authorization': urlObj.headers.Authorization,
-  // 'x-amz-date': urlObj['headers']['X-Amz-Date'],
-  // 'x-amz-target': 'com.amazonaws.transcribe.Transcribe.StartStreamTranscription',
-  // 'x-amz-content-sha256': 'STREAMING-AWS4-HMAC-SHA256-EVENTS',
-  // 'content-type': 'application/vnd.amazon.eventstream',
+  let socket = new WebSocket(url);
 
-  let urlObj = aws4.sign(urlOpts, {accessKeyId: 'xxx', secretAccessKey: 'xxx'});
+  socket.binaryType = "arraybuffer";
+  wireSocketEvents(socket);
 
-  const opts = {
-    ...urlOpts,
-    'x-amz-transcribe-language-code': process.env.LANG_CODE || 'en-US',
-    'x-amz-transcribe-media-encoding': 'pcm',
-    'x-amz-transcribe-sample-rate': 16000
-  };
+  socket.on('open', () => {
+    ws.on('message', (msg) => {
+      if (typeof msg === 'string') {
+        let config = JSON.parse(msg);
 
-    const client = http2
-    .connect('https://transcribestreaming.us-east-1.amazonaws.com')
-    .on('connect', () => {
-      console.log(client);
-    })
-    .on('goaway', () => console.log('client goaway'))
-    .on('stream', () => console.log('client streaming'))
-    .on('timeout', () => console.log('client timeout'))
-    .on('ping', () => console.log('client ping'))
-    .on('altsvc', () => console.log('client altsvc'))
-    .on('origin', () => console.log('client origin'))
-    .on('close', () => console.log('client close'))
-    .on('frameError', () => console.log('client frameError'))
-    .on('error', (err) => console.error(err));
-
-  let stream = client.request(opts);
-  stream
-  .on('aborted', () => console.log('stream aborted'))
-  .on('close', (headers, flags) => console.log('stream close'))
-  .on('error', (err) => console.log(err))
-  .on('frameError', () => console.log('frameError'))
-  .on('timeout', () => console.log('timeout'))
-  .on('trailers', () => console.log('trailers'))
-  .on('wantTrailers', () => console.log('wantTrailers'))
-  .on('continue', () => console.log('continue'))
-  .on('headers', () => console.log('headers'))
-  .on('push', () => console.log('push'))
-  .on('ready', () => console.log(stream))
-  .on('data', (data) => console.log(data.toString('utf8')))
-  .on('response', (headers, flags) => console.log('stream response'))
-  .on('end', () => {
-    console.log('stream end')
-    // stream = client.request(opts);
-  })
-
-  ws.on('message', (msg) => {
-    if (typeof msg === 'string') {
-      let config = JSON.parse(msg);
-      client.ping((err, duration, payload) => {
-        if (!err) {
-          console.log(`Ping acknowledged in ${duration} milliseconds`);
-          console.log(`With payload '${payload.toString()}'`);
+      } else {
+        if (socket.OPEN) {
+          let buf = getAudioEventMessage(msg);
+          let binary = eventStreamMarshaller.marshall(buf);
+          socket.send(binary);
         }
-      });
-    } else {
-      let audioBlob = JSON.stringify({
-         'AudioStream': {
-            'AudioEvent': {
-               'AudioChunk': msg
-            }
-         }
-      });
-      // console.log(audioBlob);
-      stream.push(audioBlob);
-      // stream.end();
-    }
+      }
 
+    });
   });
 
-  ws.on('close', () => {
-    stream.end();
-    client.destroy();
+  ws.on('close', () => { //close down open sockets
+    console.log('Closing sockets');
+    socket.close();
+  })
+
+  ws.on('error', (err) => {
+    console.warn(err);
   })
 });
+
+function getAudioEventMessage(buffer) {
+    // wrap the audio data in a JSON envelope
+    return {
+        headers: {
+            ':message-type': {
+                type: 'string',
+                value: 'event'
+            },
+            ':event-type': {
+                type: 'string',
+                value: 'AudioEvent'
+            }
+        },
+        body: buffer
+    };
+}
+
+function wireSocketEvents(socket) {
+    // handle inbound messages from Amazon Transcribe
+    socket.onmessage = function (message) {
+        //convert the binary event stream message to JSON
+        let messageWrapper = eventStreamMarshaller.unmarshall(Buffer.from(message.data));
+        let messageBody = JSON.parse(String.fromCharCode.apply(String, messageWrapper.body));
+
+        // Uncomment for full response
+        // console.dir(messageBody.Transcript.Results, {depth: null});
+
+        // Show transcript only
+        if (messageBody.Transcript.Results[0]) {
+          console.log('AWS Transcription::: ', messageBody.Transcript.Results[0].Alternatives[0].Transcript);
+        }
+    };
+
+    socket.onerror = function (err) {
+        console.warn('AWS socket error:::', err);
+    };
+
+    socket.onclose = function (closeEvent) {
+        console.log('AWS socket closed');
+    };
+}
 
 const port = process.env.PORT || 8000;
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
