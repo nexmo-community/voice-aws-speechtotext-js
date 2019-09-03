@@ -30,7 +30,7 @@ app.get('/ncco', (req, res) => {
       'action': 'connect',
       'endpoint': [{
         'type': 'websocket',
-        'content-type': 'audio/l16;rate=16000',
+        'content-type': `audio/l16;rate=${process.env.SAMPLE_RATE}`,
         'uri': `ws://${req.hostname}/socket`
       }]
     }
