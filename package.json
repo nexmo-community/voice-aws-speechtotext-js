@@ -24,6 +24,6 @@
     "express": "^4.16.4",
     "express-ws": "^4.0.0",
     "nexmo": "^2.4.0",
-    "query-string": "^6.8.2"
+    "query-string": "^7.0.0"
   }
 }
