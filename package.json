@@ -19,7 +19,7 @@
   "dependencies": {
     "@aws-sdk/eventstream-marshaller": "0.1.0-preview.2",
     "@aws-sdk/util-utf8-node": "0.1.0-preview.1",
-    "body-parser": "^1.18.3",
+    "body-parser": "^1.20.6",
     "dotenv": "^4.0.0",
     "express": "^4.16.4",
     "express-ws": "^4.0.0",
